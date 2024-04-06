@@ -190,5 +190,4 @@ except KeyboardInterrupt:
     pass
 finally:
     lcd.clear()
-    hx711.power_down()
     pi.stop()

@@ -3,26 +3,6 @@ import pigpio
 from rpi_lcd import LCD
 from hx711 import HX711
 
-class PaintPour:
-    def __init__(self, hx711_dout, hx711_pd_sck, calibration_value):
-        self.hx711_dout = hx711_dout
-        self.hx711_pd_sck = hx711_pd_sck
-        self.calibration_value = calibration_value
-        self.pi = pigpio.pi()
-        self.hx711 = HX711(self.hx711_dout, self.hx711_pd_sck, self.calibration_value)
-
-    def get_weight(self):
-        return self.hx711.get_weight()
-
-    def tare(self):
-        self.hx711.tare()
-
-    def power_down(self):
-        self.hx711.power_down()
-
-    def power_up(self):
-        self.hx711.power_up()
-
 # Initialize LCD display
 lcd = LCD()
 lcd.begin(16, 2)
@@ -39,8 +19,8 @@ pi.set_mode(start_button_pin, pigpio.INPUT)
 pi.set_pull_up_down(start_button_pin, pigpio.PUD_DOWN)
 pi.set_mode(led_pin, pigpio.OUTPUT)
 
-# Initialize the PaintPour class with the appropriate pins and calibration value
-pp = PaintPour(hx711_dout=18, hx711_pd_sck=23, calibration_value=-2750)
+# Initialize the HX711 class with the appropriate pins and calibration value
+hx711 = HX711(18, 23, -2750)
 
 # Global variables
 target_weight = 0.0
@@ -191,12 +171,12 @@ def check_weight():
 
 try:
     lcd.clear()
-    pp.tare()
+    hx711.tare()
     print('paint filler program loaded')
 
     while True:
         lcd.text('READY', 1)
-        current_weight = pp.get_weight()
+        current_weight = hx711.get_weight()
         lcd.text(str(current_weight) + ' g', 2)
         time.sleep(0.1)
 
@@ -210,5 +190,5 @@ except KeyboardInterrupt:
     pass
 finally:
     lcd.clear()
-    pp.power_down()
+    hx711.power_down()
     pi.stop()

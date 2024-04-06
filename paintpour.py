@@ -20,7 +20,7 @@ pi.set_pull_up_down(start_button_pin, pigpio.PUD_DOWN)
 pi.set_mode(led_pin, pigpio.OUTPUT)
 
 # Initialize the HX711 class with the appropriate pins and calibration value
-hx711 = HX711(18, 23, -2750)
+scale = HX711(gpio)
 
 # Global variables
 target_weight = 0.0
@@ -30,7 +30,7 @@ def set_weight():
     time.sleep(0.5)
     print('set weight function begun')
     global target_weight
-    target_weight = pp.get_weight()
+    target_weight = scale.read()
     lcd.clear()
     button_pressed = False
     increment = 0.1
@@ -123,8 +123,8 @@ def check_weight():
     time.sleep(0.1)
     time_remaining = pourTimer
 
-    if pp.get_weight() < target_weight * 0.1:
-        pp.tare()
+    if scale.read() < target_weight * 0.1:
+        scale.zero()
         pi.write(led_pin, 1)
         print('relay ON')
 
@@ -132,7 +132,7 @@ def check_weight():
         print('start time SET')
 
         while time_remaining > 0:
-            current_weight = pp.get_weight()
+            current_weight = scale.read()
             if current_weight >= target_weight:
                 break
 
@@ -171,12 +171,12 @@ def check_weight():
 
 try:
     lcd.clear()
-    hx711.tare()
+    scale.zero()
     print('paint filler program loaded')
 
     while True:
         lcd.text('READY', 1)
-        current_weight = hx711.get_weight()
+        current_weight = scale.read()
         lcd.text(str(current_weight) + ' g', 2)
         time.sleep(0.1)
 

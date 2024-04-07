@@ -8,9 +8,11 @@ lcd = LCD()
 lcd.begin(16, 2)
 
 # Set up GPIO pins for buttons and relay
-set_weight_button_pin = 17
-start_button_pin = 27
-led_pin = 22
+set_weight_button_pin = 16
+start_button_pin = 12
+led_pin = 26
+up_button_pin = 6
+down_button_pin = 13 
 
 pi = pigpio.pi()
 pi.set_mode(set_weight_button_pin, pigpio.INPUT)

@@ -1,7 +1,7 @@
 import time
 import pigpio
 from rpi_lcd import LCD
-from hx711 import HX711
+from hx711 import CH_A_GAIN_64, CH_A_GAIN_128, HX711
 
 # Initialize LCD display
 lcd = LCD()

@@ -47,6 +47,8 @@ def set_weight():
             target_weight = round(target_weight, 2)
 #            lcd.text('TARGET SAVED: ', 1)
 #            lcd.text(str(target_weight) + " oz", 2)
+            print(target_weight)
+            print(pourTimer)
             time.sleep(3)
             set_time()
             return target_weight, pourTimer

@@ -104,9 +104,14 @@ def check_weight():
     # pourTimer = target_weight
     time_remaining = pourTimer
 
+    try:
+        current_weight = scale.get_weight_mean(3)
+    except statistics.StatisticsError:
+        print('Error calculating weight, retrying...')
+        continue
 
     # Check to see if the scale is clear
-    if scale.get_weight_mean(5) < target_weight * 0.1:
+    if current_weight < target_weight * 0.1:
         scale.zero()
         # Turn on the relay
         GPIO.output(solenoid, GPIO.HIGH)
@@ -119,7 +124,11 @@ def check_weight():
         # Loop until the countdown reaches 0 or the current weight is greater than or equal to the target weight
         while time_remaining > 0:
             # Get the current weight from the scale
-            current_weight = scale.get_weight_mean(3)
+            try:
+                current_weight = scale.get_weight_mean(3)
+            except statistics.StatisticsError:
+                print('Error calculating weight, retrying...')
+                continue
             # Check if the current weight is greater than or equal to the target weight
             if current_weight >= target_weight:
                 # End the function and return to main loop

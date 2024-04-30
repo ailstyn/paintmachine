@@ -111,7 +111,7 @@ def check_weight():
         current_weight = scale.get_weight_mean(3)
     except statistics.StatisticsError:
         print('Error calculating weight, retrying...')
-        continue
+        
 
     # Check to see if the scale is clear
     if current_weight < target_weight * 0.1:

@@ -47,7 +47,7 @@ def set_weight():
 #            lcd.text('TARGET SAVED: ', 1)
 #            lcd.text(str(target_weight) + " oz", 2)
             time.sleep(3)
-            set_time()
+            pourTimer = set_time(pourTimer)
             return target_weight, pourTimer
         if not GPIO.input(up_button_pin):           # increase the target weight
             print('up button pressed')
@@ -63,7 +63,7 @@ def set_weight():
 #        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
 
 # Time set funtion
-def set_time():
+def set_time(pourTimer):
     time.sleep(0.5)
     print('set time function begun')
     #global pourTimer

@@ -1,5 +1,6 @@
 import time
 import os
+import statistics
 import RPi.GPIO as GPIO
 from hx711 import HX711
 from rpi_lcd import LCD

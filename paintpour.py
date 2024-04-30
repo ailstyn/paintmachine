@@ -51,11 +51,11 @@ def set_weight():
             return target_weight, pourTimer
         if not GPIO.input(up_button_pin):           # increase the target weight
             print('up button pressed')
-            target_weight += 0.1
+            target_weight += 0.2
             time.sleep(0.1)
         if not GPIO.input(down_button_pin):         # decrease the target weight
             print('down button pressed')
-            new_target_weight = target_weight - 0.1
+            new_target_weight = target_weight - 0.2
             if new_target_weight >= 0:
                 target_weight = new_target_weight
             time.sleep(0.1)

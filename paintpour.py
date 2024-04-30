@@ -81,14 +81,14 @@ def set_time():
             time.sleep(3)
             return pourTimer
         if not GPIO.input(up_button_pin):           # increase the target time
-            print('up button pressed')
             pourTimer += 1
+            print(pourTimer)
             time.sleep(0.3)
         if not GPIO.input(down_button_pin):         # decrease the target time
-            print('down button pressed')
             new_pourTimer = pourTimer - 1
             if new_pourTimer >= 0:
                 pourTimer = new_pourTimer
+            print(pourTimer)
             time.sleep(0.3)
 
 #        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)

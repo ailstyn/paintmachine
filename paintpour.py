@@ -15,19 +15,23 @@ solenoid = 26
 pourTimer = 8.00
 current_weight = 0
 target_weight = 16
+tare_button_pin = 19
+weight = 0
 GPIO.setup(start_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(up_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(down_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(set_weight_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(solenoid, GPIO.OUT)
+GPIO.setup(tare_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.output(solenoid, GPIO.LOW)
 
 # Set up LCD display
-#lcd = LCD()
+lcd = LCD()
 
 # Create scale object
 scale = HX711(dout_pin=21, pd_sck_pin=20)
 scale.set_scale_ratio(13227.143)
+
 
 # Weight set function
 def set_weight():
@@ -35,7 +39,7 @@ def set_weight():
     print('set weight function begun')
     global target_weight
     target_weight = current_weight
-#    lcd.clear()
+    lcd.clear()
     button_pressed = False
     while True:
         if not button_pressed and not GPIO.input(set_weight_button_pin):
@@ -45,32 +49,32 @@ def set_weight():
             # If the button has been pressed and it's currently being released, save the target weight and return
             print('Target weight saved')
             target_weight = round(target_weight, 2)
-#            lcd.text('TARGET SAVED: ', 1)
-#            lcd.text(str(target_weight) + " oz", 2)
-            print(target_weight)
-            print(pourTimer)
+            lcd.text('TARGET SAVED: ', 1)
+            lcd.text(str(target_weight) + " oz", 2)
+#            print(target_weight)
+#            print(pourTimer)
             time.sleep(3)
             set_time()
             return target_weight, pourTimer
         if not GPIO.input(up_button_pin):           # increase the target weight
             target_weight += 0.1
-            print(target_weight)
+#            print(target_weight)
             time.sleep(0.3)
         if not GPIO.input(down_button_pin):         # decrease the target weight
             new_target_weight = target_weight - 0.1
             if new_target_weight >= 0:
                 target_weight = new_target_weight
-            print(target_weight)
+#            print(target_weight)
             time.sleep(0.3)
 
-#        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
+        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
 
 # Time set funtion
 def set_time():
     time.sleep(0.5)
     print('set time function begun')
     global pourTimer
-#    lcd.clear()
+    lcd.clear()
     button_pressed = False
     while True:
         if not button_pressed and not GPIO.input(set_weight_button_pin):
@@ -78,29 +82,29 @@ def set_time():
             button_pressed = True
         elif button_pressed and GPIO.input(set_weight_button_pin):
             # If the button has been pressed and it's currently being released, save the target weight and return
-            print('Time saved')
- #           lcd.text('TARGET SAVED: ', 1)
- #           lcd.text(str(pourTimer) + " oz", 2)
+#            print('Time saved')
+            lcd.text('TARGET SAVED: ', 1)
+            lcd.text(str(pourTimer) + " oz", 2)
             time.sleep(3)
             return pourTimer
         if not GPIO.input(up_button_pin):           # increase the target time
             pourTimer += 1
-            print(pourTimer)
+#            print(pourTimer)
             time.sleep(0.3)
         if not GPIO.input(down_button_pin):         # decrease the target time
             new_pourTimer = pourTimer - 1
             if new_pourTimer >= 0:
                 pourTimer = new_pourTimer
-            print(pourTimer)
+#            print(pourTimer)
             time.sleep(0.3)
 
-#        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
+        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
 
 
 # Turns on the solenoid and starts reading from the weight sensor,
 # when the current weight exceeds or equals the target weight the 
 # solenoid is turned off and the function exits
-def check_weight():
+def fill():
     # Small delay to prevent button double-presses
     time.sleep(0.1)
     # Set the initial countdown value (in seconds)
@@ -114,7 +118,7 @@ def check_weight():
         
 
     # Check to see if the scale is clear
-    if current_weight < target_weight * 0.1:
+    if current_weight < target_weight * 0.5:
         scale.zero()
         # Turn on the relay
         GPIO.output(solenoid, GPIO.HIGH)
@@ -142,32 +146,25 @@ def check_weight():
             time_remaining = pourTimer - elapsed_time
 
             # Print the current weight and countdown value to the LCD display
-#            lcd.text("Weight: {:.1f}".format(current_weight), 1)
-#            lcd.text("Time: {:.2f}".format(time_remaining), 2)
+            lcd.text("Weight: {:.1f}".format(current_weight), 1)
+            lcd.text("Time: {:.2f}".format(time_remaining), 2)
             
-            # Print debug messages to confirm the values of countdown, elapsed_time, and time_remaining
-#            print("pourTimer: {:.3f}".format(pourTimer))
-#            print("Elapsed time: {:.3f}".format(elapsed_time))
-            print("Time remaining: {:.3f}".format(time_remaining))
-            print(current_weight)
         # Turn off the relay
         GPIO.output(solenoid, GPIO.LOW)
-#        lcd.text("Target Weight Reached", 1)
         print('relay OFF')
 
         # Print a message to the LCD display indicating whether the target weight was reached
         if current_weight >= target_weight:
-#            lcd.clear()
-#            lcd.text("Target weight reached!", 1)
-            print("Target weight reached!")
-#            lcd.text("Weight: {:.1f}".format(current_weight), 2)
+            lcd.clear()
+            lcd.text("Target weight reached!", 1)
+            lcd.text("Weight: {:.1f}".format(current_weight), 2)
             time.sleep(1)
             return
         else:
-#            lcd.clear()
-#            lcd.text("Time's up!", 1)
-#            lcd.text("Weight: {:.1f}".format(current_weight), 2)
-            print("Time's up!")
+            lcd.clear()
+            lcd.text("Time's up!", 1)
+            lcd.text("Weight: {:.1f}".format(current_weight), 2)
+#            print("Time's up!")
             time.sleep(1)
             return
 
@@ -175,36 +172,32 @@ def check_weight():
         time.sleep(2)
         return
     else:
-#        lcd.text('CLEAR SCALE', 1)
-        print('CLEAR SCALE')
+        lcd.text('CLEAR SCALE', 1)
         return
-# Load scale calibration files
-#try:
-#swap_file_name = 'swap_file.swp'
-#if os.path.isfile(swap_file_name):
-#    with open(swap_file_name, 'rb') as swap_file:
-#        scale = pickle.load(swap_file)
+
 
 # Main loop
 try:
-#    lcd.clear()
+    lcd.clear()
     scale.zero()
     print('paint filler program loaded')
     while True:
-#        lcd.text('READY', 1)
-#        lcd.text(str(scale.get_data_mean(3))+' g', 2)
-        weight = scale.get_weight_mean(5)
+        lcd.text('READY', 1)
+        weight = round(scale.get_weight_mean(5), 2)
         if weight >= 0 and weight != False:
-            print(weight)
-#        time.sleep(0.1)
+            lcd.text(str(weight)+' oz', 2)
 
         # If the set weight button was pressed, execute the set_weight function
         if not GPIO.input(set_weight_button_pin):
             set_weight()
 
-        # If the start button was pressed, execute the check_weight function
+        # If the start button was pressed, execute the fill function
         elif not GPIO.input(start_button_pin):
-            check_weight()
+            fill()
+            
+        # If the set zero button was pressed, tare the scale
+        elif not GPIO.input(tare_button_pin):
+            scale.zero()
 
 except KeyboardInterrupt:
     pass

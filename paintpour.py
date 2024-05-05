@@ -7,15 +7,15 @@ from rpi_lcd import LCD
 
 # Assign all the GPIO pins
 GPIO.setmode(GPIO.BCM)
-start_button_pin = 12
+start_button_pin = 16
 up_button_pin = 6
-down_button_pin = 13
-set_weight_button_pin = 16
-solenoid = 26
+down_button_pin = 19
+set_weight_button_pin = 13
+solenoid = 12
 pourTimer = 8.00
 current_weight = 0
 target_weight = 16
-tare_button_pin = 19
+tare_button_pin = 26
 weight = 0
 GPIO.setup(start_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(up_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)

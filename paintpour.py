@@ -51,6 +51,7 @@ def set_weight():
             target_weight = round(target_weight, 2)
             lcd.text('TARGET SAVED: ', 1)
             lcd.text(str(target_weight) + " oz", 2)
+#            Printouts to check that the variables are working correctly
 #            print(target_weight)
 #            print(pourTimer)
             time.sleep(3)
@@ -131,6 +132,7 @@ def fill():
         # Loop until the countdown reaches 0 or the current weight is greater than or equal to the target weight
         while time_remaining > 0:
             # Get the current weight from the scale
+            # If the scale returns a statistical error it retries
             try:
                 current_weight = scale.get_weight_mean(3)
             except statistics.StatisticsError:
@@ -183,6 +185,7 @@ try:
     print('paint filler program loaded')
     while True:
         lcd.text('READY', 1)
+        # Displays a live readout of the weight currently on the scale
         weight = round(scale.get_weight_mean(5), 2)
         if weight >= 0 and weight != False:
             lcd.text(str(weight)+' oz', 2)

@@ -4,6 +4,42 @@ import statistics
 import RPi.GPIO as GPIO
 from hx711 import HX711
 from rpi_lcd import LCD
+import logging
+
+# Configure logging
+logging.basicConfig(filename='paintpour.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+#Define GPIO pins for each relay/sensor pair
+pairs = [
+    {
+        'start_button_pin': 16,
+        'solenoid': 12,
+        'dout_pin': 21,
+        'pd_sck_pin': 20,
+        'scale_ratio': 13227.143
+    },
+    {
+        'start_button_pin': xx,
+        'solenoid': xx,
+        'dout_pin': xx,
+        'pd_sck_pin': xx,
+        'scale_ratio': xx
+    },
+    {
+        'start_button_pin': yy,
+        'solenoid': yy,
+        'dout_pin': yy,
+        'pd_sck_pin': yy,
+        'scale_ratio': yy
+    },
+    {
+        'start_button_pin': zz,
+        'solenoid': zz,
+        'dout_pin': zz,
+        'pd_sck_pin': zz,
+        'scale_ratio': zz
+    }
+]
 
 # Assign all the GPIO pins
 GPIO.setmode(GPIO.BCM)
@@ -28,15 +64,25 @@ GPIO.output(solenoid, GPIO.LOW)
 # Set up LCD display
 lcd = LCD()
 
-# Create scale object
-scale = HX711(dout_pin=21, pd_sck_pin=20)
-scale.set_scale_ratio(13227.143)
+# Create scale objects
+scale_0 = HX711(dout_pin=pairs[], pd_sck_pin=20)
+scale_0.set_scale_ratio(13227.143)
+
+scale_1 = HX711(dout_pin=xx, pd_sck_pin=xx)
+scale_1.set_scale_ratio(xx)
+
+scale_2 = HX711(dout_pin=yy, pd_sck_pin=yy)
+scale_2.set_scale_ratio(yy)
+
+scale_3 = HX711(dout_pin=zz, pd_sck_pin=zz)
+scale_3.set_scale_ratio(zz)
+
 
 
 # Weight set function
 def set_weight():
     time.sleep(0.5)
-    print('set weight function begun')
+    logging.info('set weight function begun')
     global target_weight
     target_weight = current_weight
     lcd.clear()
@@ -47,7 +93,7 @@ def set_weight():
             button_pressed = True
         elif button_pressed and GPIO.input(set_weight_button_pin):
             # If the button has been pressed and it's currently being released, save the target weight and return
-            print('Target weight saved')
+            logging.info('Target weight saved')
             target_weight = round(target_weight, 2)
             lcd.text('TARGET SAVED: ', 1)
             lcd.text(str(target_weight) + " oz", 2)
@@ -73,7 +119,7 @@ def set_weight():
 # Time set funtion
 def set_time():
     time.sleep(0.5)
-    print('set time function begun')
+    logging.info('set time function begun')
     global pourTimer
     lcd.clear()
     button_pressed = False
@@ -115,7 +161,7 @@ def fill():
     try:
         current_weight = scale.get_weight_mean(3)
     except statistics.StatisticsError:
-        print('Error calculating weight, retrying...')
+        logging.error('Error calculating weight, retrying...')
         
 
     # Check to see if the scale is clear
@@ -123,11 +169,10 @@ def fill():
         scale.zero()
         # Turn on the relay
         GPIO.output(solenoid, GPIO.HIGH)
-        print('relay ON')
+        logging.info('relay ON')
 
         # Get the start time
         start_time = time.perf_counter()
-        print('start time SET')
 
         # Loop until the countdown reaches 0 or the current weight is greater than or equal to the target weight
         while time_remaining > 0:
@@ -136,7 +181,7 @@ def fill():
             try:
                 current_weight = scale.get_weight_mean(3)
             except statistics.StatisticsError:
-                print('Error calculating weight, retrying...')
+                logging.error('Error calculating weight, retrying...')
                 continue
             # Check if the current weight is greater than or equal to the target weight
             if current_weight >= target_weight:
@@ -153,7 +198,6 @@ def fill():
             
         # Turn off the relay
         GPIO.output(solenoid, GPIO.LOW)
-        print('relay OFF')
 
         # Print a message to the LCD display indicating whether the target weight was reached
         if current_weight >= target_weight:
@@ -175,6 +219,7 @@ def fill():
         return
     else:
         lcd.text('CLEAR SCALE', 1)
+        logging.info('Weight on scale, fill cancelled')
         return
 
 
@@ -182,7 +227,7 @@ def fill():
 try:
     lcd.clear()
     scale.zero()
-    print('paint filler program loaded')
+    logging.info('paint filler program loaded')
     while True:
         lcd.text('READY', 1)
         # Displays a live readout of the weight currently on the scale
@@ -207,3 +252,4 @@ except KeyboardInterrupt:
     
 finally:
     GPIO.cleanup()
+    logging.info('Program terminated and GPIO cleaned up.')

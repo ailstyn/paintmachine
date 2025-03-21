@@ -1,0 +1,12 @@
+- Build GUI in paintgui.py
+    - english/spanish labelling
+    - E-stop screen
+- Replace RPI_LCD with paintgui
+- add flow rate calculation
+    - auto-calibrate shutoff timer from flowrate
+- Add wiring diagram (wireviz?)
+- add BOM
+- redesign paintpour.py for multiprocessing
+- build raspilite image with everything preinstalled
+- add manual fill setting
+- add overfill correction

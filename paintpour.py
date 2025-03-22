@@ -3,81 +3,112 @@ import os
 import statistics
 import RPi.GPIO as GPIO
 from hx711 import HX711
-from rpi_lcd import LCD
 import logging
+import sys
+from PyQt5.QtWidgets import QApplication
+from paintgui import MainWindow
+from multiprocessing import Process
 
 # Configure logging
 logging.basicConfig(filename='paintpour.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-#Define GPIO pins for each relay/sensor pair
-pairs = [
-    {
-        'start_button_pin': 16,
-        'solenoid': 12,
-        'dout_pin': 21,
-        'pd_sck_pin': 20,
-        'scale_ratio': 13227.143
-    },
-    {
-        'start_button_pin': xx,
-        'solenoid': xx,
-        'dout_pin': xx,
-        'pd_sck_pin': xx,
-        'scale_ratio': xx
-    },
-    {
-        'start_button_pin': yy,
-        'solenoid': yy,
-        'dout_pin': yy,
-        'pd_sck_pin': yy,
-        'scale_ratio': yy
-    },
-    {
-        'start_button_pin': zz,
-        'solenoid': zz,
-        'dout_pin': zz,
-        'pd_sck_pin': zz,
-        'scale_ratio': zz
-    }
-]
+# Filepath for saving/loading settings
+settings_file = 'settings.txt'
+
+# Function to load settings from file
+def load_settings():
+    global pourTimer, target_weight, scale_1_ratio, scale_2_ratio, scale_3_ratio, scale_4_ratio
+    try:
+        with open(settings_file, 'r') as file:
+            lines = file.readlines()
+            pourTimer = float(lines[0].strip())
+            target_weight = float(lines[1].strip())
+            scale_1_ratio = float(lines[2].strip())
+            scale_2_ratio = float(lines[3].strip())
+            scale_3_ratio = float(lines[4].strip())
+            scale_4_ratio = float(lines[5].strip())
+    except FileNotFoundError:
+        logging.warning('Settings file not found. Using default values.')
+    except Exception as e:
+        logging.error(f'Error loading settings: {e}')
+
+# Function to save settings to file
+def save_settings():
+    global pourTimer, target_weight, scale_1_ratio, scale_2_ratio, scale_3_ratio, scale_4_ratio
+    try:
+        with open(settings_file, 'w') as file:
+            file.write(f'{pourTimer}\n')
+            file.write(f'{target_weight}\n')
+            file.write(f'{scale_1_ratio}\n')
+            file.write(f'{scale_2_ratio}\n')
+            file.write(f'{scale_3_ratio}\n')
+            file.write(f'{scale_4_ratio}\n')
+    except Exception as e:
+        logging.error(f'Error saving settings: {e}')
 
 # Assign all the GPIO pins
 GPIO.setmode(GPIO.BCM)
-start_button_pin = 16
+
+# Start button pins
+startB1 = 16
+startB2 = 0
+startB3 = 0
+startB4 = 0
+
+# Relay pins
+relay1 = 12
+relay2 = 0
+relay3 = 0
+relay4 = 0
+
+# Remaining button pins
+tare_button_pin = 26
 up_button_pin = 6
 down_button_pin = 19
 set_weight_button_pin = 13
-solenoid = 12
-pourTimer = 8.00
+
+# Create variables for the weight and current weight so the program doesn't have a fit
 current_weight = 0
-target_weight = 16
-tare_button_pin = 26
 weight = 0
-GPIO.setup(start_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Load settings on startup
+load_settings()
+
+# Set up the GPIO pins
 GPIO.setup(up_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(down_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(set_weight_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(solenoid, GPIO.OUT)
 GPIO.setup(tare_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.output(solenoid, GPIO.LOW)
 
-# Set up LCD display
-lcd = LCD()
+GPIO.setup(startB1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(startB2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(startB3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(startB4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Start all the relays LOW so they don't accidentally turn on
+GPIO.setup(relay1, GPIO.LOW)
+GPIO.setup(relay2, GPIO.LOW)
+GPIO.setup(relay3, GPIO.LOW)
+GPIO.setup(relay4, GPIO.LOW)
 
 # Create scale objects
-scale_0 = HX711(dout_pin=pairs[], pd_sck_pin=20)
-scale_0.set_scale_ratio(13227.143)
+scale_1 = HX711(dout_pin=21, pd_sck_pin=20)
+scale_1.set_scale_ratio(scale_1_ratio)
 
-scale_1 = HX711(dout_pin=xx, pd_sck_pin=xx)
-scale_1.set_scale_ratio(xx)
+scale_2 = HX711(dout_pin=xx, pd_sck_pin=xx)
+scale_2.set_scale_ratio(scale_2_ratio)
 
-scale_2 = HX711(dout_pin=yy, pd_sck_pin=yy)
-scale_2.set_scale_ratio(yy)
+scale_3 = HX711(dout_pin=yy, pd_sck_pin=yy)
+scale_3.set_scale_ratio(scale_3_ratio)
 
-scale_3 = HX711(dout_pin=zz, pd_sck_pin=zz)
-scale_3.set_scale_ratio(zz)
+scale_4 = HX711(dout_pin=zz, pd_sck_pin=zz)
+scale_4.set_scale_ratio(scale_4_ratio)
 
-
+# Function to update GUI
+def update_gui(current_weight, time_remaining):
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = MainWindow(str(current_weight) + " oz", "Time Remaining: " + str(time_remaining) + "s")
+    sys.exit(app.exec_())
 
 # Weight set function
 def set_weight():
@@ -85,7 +116,6 @@ def set_weight():
     logging.info('set weight function begun')
     global target_weight
     target_weight = current_weight
-    lcd.clear()
     button_pressed = False
     while True:
         if not button_pressed and not GPIO.input(set_weight_button_pin):
@@ -95,33 +125,23 @@ def set_weight():
             # If the button has been pressed and it's currently being released, save the target weight and return
             logging.info('Target weight saved')
             target_weight = round(target_weight, 2)
-            lcd.text('TARGET SAVED: ', 1)
-            lcd.text(str(target_weight) + " oz", 2)
-#            Printouts to check that the variables are working correctly
-#            print(target_weight)
-#            print(pourTimer)
             time.sleep(3)
             set_time()
             return target_weight, pourTimer
         if not GPIO.input(up_button_pin):           # increase the target weight
             target_weight += 0.1
-#            print(target_weight)
             time.sleep(0.3)
         if not GPIO.input(down_button_pin):         # decrease the target weight
             new_target_weight = target_weight - 0.1
             if new_target_weight >= 0:
                 target_weight = new_target_weight
-#            print(target_weight)
             time.sleep(0.3)
-
-        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
 
 # Time set funtion
 def set_time():
     time.sleep(0.5)
     logging.info('set time function begun')
     global pourTimer
-    lcd.clear()
     button_pressed = False
     while True:
         if not button_pressed and not GPIO.input(set_weight_button_pin):
@@ -129,25 +149,23 @@ def set_time():
             button_pressed = True
         elif button_pressed and GPIO.input(set_weight_button_pin):
             # If the button has been pressed and it's currently being released, save the target weight and return
-#            print('Time saved')
-            lcd.text('TARGET SAVED: ', 1)
-            lcd.text(str(pourTimer) + " oz", 2)
+            logging.info('Target time saved', pourTimer)
             time.sleep(3)
             return pourTimer
         if not GPIO.input(up_button_pin):           # increase the target time
             pourTimer += 1
-#            print(pourTimer)
             time.sleep(0.3)
         if not GPIO.input(down_button_pin):         # decrease the target time
             new_pourTimer = pourTimer - 1
             if new_pourTimer >= 0:
                 pourTimer = new_pourTimer
-#            print(pourTimer)
             time.sleep(0.3)
 
-        lcd.text("Target: " + "{:.1f}".format(target_weight), 1)
-
-
+# Function to handle multiprocessing
+def start_fill_process(relay, scale):
+    p = Process(target=fill, args=(relay, scale))
+    p.start()
+    
 # Turns on the solenoid and starts reading from the weight sensor,
 # when the current weight exceeds or equals the target weight the 
 # solenoid is turned off and the function exits
@@ -162,13 +180,11 @@ def fill():
         current_weight = scale.get_weight_mean(3)
     except statistics.StatisticsError:
         logging.error('Error calculating weight, retrying...')
-        
 
     # Check to see if the scale is clear
     if current_weight < target_weight * 0.5:
         scale.zero()
-        # Turn on the relay
-        GPIO.output(solenoid, GPIO.HIGH)
+        GPIO.output(relay1, GPIO.HIGH)
         logging.info('relay ON')
 
         # Get the start time
@@ -184,20 +200,19 @@ def fill():
                 logging.error('Error calculating weight, retrying...')
                 continue
             # Check if the current weight is greater than or equal to the target weight
+            # if so, end the loop
             if current_weight >= target_weight:
-                # End the function and return to main loop
                 break
 
-            # Calculate the elapsed time and the remaining time
+            # Adjust the elapsed time
             elapsed_time = time.perf_counter() - start_time
             time_remaining = pourTimer - elapsed_time
 
-            # Print the current weight and countdown value to the LCD display
-            lcd.text("Weight: {:.1f}".format(current_weight), 1)
-            lcd.text("Time: {:.2f}".format(time_remaining), 2)
+            # Update the GUI with the current weight and countdown value
+            update_gui(current_weight, time_remaining)
             
         # Turn off the relay
-        GPIO.output(solenoid, GPIO.LOW)
+        GPIO.output(relay1, GPIO.LOW)  # Renamed from solenoid
 
         # Print a message to the LCD display indicating whether the target weight was reached
         if current_weight >= target_weight:
@@ -210,7 +225,6 @@ def fill():
             lcd.clear()
             lcd.text("Time's up!", 1)
             lcd.text("Weight: {:.1f}".format(current_weight), 2)
-#            print("Time's up!")
             time.sleep(1)
             return
 
@@ -222,34 +236,41 @@ def fill():
         logging.info('Weight on scale, fill cancelled')
         return
 
-
 # Main loop
 try:
-    lcd.clear()
-    scale.zero()
+    scale_1.zero()
     logging.info('paint filler program loaded')
+    app = QApplication(sys.argv)
+    window = MainWindow("0 oz", "Time Remaining: 0s")
     while True:
-        lcd.text('READY', 1)
         # Displays a live readout of the weight currently on the scale
-        weight = round(scale.get_weight_mean(5), 2)
+        weight = round(scale_1.get_weight_mean(5), 2)
         if weight >= 0 and weight != False:
-            lcd.text(str(weight)+' oz', 2)
+            window.update_labels(str(weight) + ' oz', "Time Remaining: 0s")
+            app.processEvents()
 
         # If the set weight button was pressed, execute the set_weight function
         if not GPIO.input(set_weight_button_pin):
             set_weight()
 
-        # If the start button was pressed, execute the fill function
-        elif not GPIO.input(start_button_pin):
-            fill()
+        # If the start button was pressed, execute the fill function in a new process
+        elif not GPIO.input(startB1):  # Renamed from start_button_pin
+            start_fill_process(relay1, scale_1)
+        elif not GPIO.input(startB2):
+            start_fill_process(relay2, scale_2)
+        elif not GPIO.input(startB3):
+            start_fill_process(relay3, scale_3)
+        elif not GPIO.input(startB4):
+            start_fill_process(relay4, scale_4)
             
         # If the set zero button was pressed, tare the scale
         elif not GPIO.input(tare_button_pin):
-            scale.zero()
+            scale_1.zero()
 
 except KeyboardInterrupt:
     pass
     
 finally:
+    save_settings()  # Save settings on exit
     GPIO.cleanup()
     logging.info('Program terminated and GPIO cleaned up.')

@@ -225,23 +225,32 @@ def fill(relay, scale, relay_in_use_flag):
         # Turn off the relay
         GPIO.output(relay, GPIO.LOW)  # Renamed from solenoid
 
-        # Print a message to the LCD display indicating whether the target weight was reached
+        # Print a message to the GUI indicating whether the target weight was reached
+        app = QApplication.instance()
+        window = app.activeWindow()
         if current_weight >= target_weight:
-            lcd.clear()
-            lcd.text("Target weight reached!", 1)
-            lcd.text("Weight: {:.1f}".format(current_weight), 2)
-            time.sleep(1)
+            window.show_message("Target weight reached!", current_weight, time_remaining)
         else:
-            lcd.clear()
-            lcd.text("Time's up!", 1)
-            lcd.text("Weight: {:.1f}".format(current_weight), 2)
+            window.show_message("Time's up!", current_weight, time_remaining)
+
+        # Wait until the weight drops by half of the final weight
+        while True:
+            try:
+                current_weight = scale.get_weight_mean(3)
+            except statistics.StatisticsError:
+                logging.error('Error calculating weight, retrying...')
+                continue
+            if current_weight < target_weight / 2:
+                break
             time.sleep(1)
 
-        # Wait for 2 seconds before returning
-        time.sleep(2)
     else:
-        lcd.text('CLEAR SCALE', 1)
-        logging.info('Weight on scale, fill cancelled')
+        app = QApplication.instance()
+        window = app.activeWindow()
+        window.show_clear_scale_warning()
+        logging.info('Weight on scale, fill cancelled')        
+        time.sleep(3)
+        fill(relay, scale, relay_in_use_flag)
 
     # Clear the relay in use flag
     relay_in_use_flag = False

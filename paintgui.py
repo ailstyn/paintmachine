@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QGridLayout, QMessageBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
@@ -75,6 +75,22 @@ class MainWindow(QMainWindow):
             self.sensor3_widget.update_labels(scale_readout, timer_readout)
         elif sensor_index == 4:
             self.sensor4_widget.update_labels(scale_readout, timer_readout)
+
+    def show_message(self, message, weight, time_remaining):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText(f"{message}\nWeight: {weight:.1f} oz\nTime Remaining: {time_remaining:.1f} s")
+        msg.setWindowTitle("Information")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def show_clear_scale_warning(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText("CLEAR SCALE")
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
 def main():
     app = QApplication(sys.argv)

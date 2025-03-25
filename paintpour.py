@@ -104,6 +104,12 @@ scale_3.set_scale_ratio(scale_3_ratio)
 scale_4 = HX711(dout_pin=zz, pd_sck_pin=zz)
 scale_4.set_scale_ratio(scale_4_ratio)
 
+# Flags to track the status of each relay/scale pair
+relay1_in_use = False
+relay2_in_use = False
+relay3_in_use = False
+relay4_in_use = False
+
 # Function to update GUI
 def update_gui(current_weight, time_remaining):
     app = QApplication.instance() or QApplication(sys.argv)
@@ -162,18 +168,23 @@ def set_time():
             time.sleep(0.3)
 
 # Function to handle multiprocessing
-def start_fill_process(relay, scale):
-    p = Process(target=fill, args=(relay, scale))
-    p.start()
-    
+def start_fill_process(relay, scale, relay_in_use_flag):
+    global relay1_in_use, relay2_in_use, relay3_in_use, relay4_in_use
+    if not relay_in_use_flag:
+        relay_in_use_flag = True
+        p = Process(target=fill, args=(relay, scale, relay_in_use_flag))
+        p.start()
+    else:
+        logging.info(f'Relay {relay} is already in use.')
+
 # Turns on the solenoid and starts reading from the weight sensor,
 # when the current weight exceeds or equals the target weight the 
 # solenoid is turned off and the function exits
-def fill():
+def fill(relay, scale, relay_in_use_flag):
+    global relay1_in_use, relay2_in_use, relay3_in_use, relay4_in_use
     # Small delay to prevent button double-presses
     time.sleep(0.1)
     # Set the initial countdown value (in seconds)
-    # pourTimer = target_weight
     time_remaining = pourTimer
 
     try:
@@ -184,7 +195,7 @@ def fill():
     # Check to see if the scale is clear
     if current_weight < target_weight * 0.5:
         scale.zero()
-        GPIO.output(relay1, GPIO.HIGH)
+        GPIO.output(relay, GPIO.HIGH)
         logging.info('relay ON')
 
         # Get the start time
@@ -212,7 +223,7 @@ def fill():
             update_gui(current_weight, time_remaining)
             
         # Turn off the relay
-        GPIO.output(relay1, GPIO.LOW)  # Renamed from solenoid
+        GPIO.output(relay, GPIO.LOW)  # Renamed from solenoid
 
         # Print a message to the LCD display indicating whether the target weight was reached
         if current_weight >= target_weight:
@@ -220,21 +231,20 @@ def fill():
             lcd.text("Target weight reached!", 1)
             lcd.text("Weight: {:.1f}".format(current_weight), 2)
             time.sleep(1)
-            return
         else:
             lcd.clear()
             lcd.text("Time's up!", 1)
             lcd.text("Weight: {:.1f}".format(current_weight), 2)
             time.sleep(1)
-            return
 
         # Wait for 2 seconds before returning
         time.sleep(2)
-        return
     else:
         lcd.text('CLEAR SCALE', 1)
         logging.info('Weight on scale, fill cancelled')
-        return
+
+    # Clear the relay in use flag
+    relay_in_use_flag = False
 
 # Main loop
 try:
@@ -255,13 +265,13 @@ try:
 
         # If the start button was pressed, execute the fill function in a new process
         elif not GPIO.input(startB1):  # Renamed from start_button_pin
-            start_fill_process(relay1, scale_1)
+            start_fill_process(relay1, scale_1, relay1_in_use)
         elif not GPIO.input(startB2):
-            start_fill_process(relay2, scale_2)
+            start_fill_process(relay2, scale_2, relay2_in_use)
         elif not GPIO.input(startB3):
-            start_fill_process(relay3, scale_3)
+            start_fill_process(relay3, scale_3, relay3_in_use)
         elif not GPIO.input(startB4):
-            start_fill_process(relay4, scale_4)
+            start_fill_process(relay4, scale_4, relay4_in_use)
             
         # If the set zero button was pressed, tare the scale
         elif not GPIO.input(tare_button_pin):

@@ -10,3 +10,5 @@
 - build raspilite image with everything preinstalled
 - add manual fill setting
 - add overfill correction
+- test x4 relay board
+- test screw terminal shield
